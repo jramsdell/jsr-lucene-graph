@@ -24,8 +24,9 @@ To run the index mode, do:
 java -jar jsr_lucene.jsr index indexType corpusCBOR IndexDirectory
 
 Where:
+
 **indexType** is one of:
-    paragraph (indexes just the full text of each paragraph in the corpus)
+ - **paragraph** (indexes just the full text of each paragraph in the corpus)
 
 **corpusCBOR**: the cbor file that will be used to build a Lucene index directory.
 
@@ -42,8 +43,8 @@ java -jar jsr_lucene.jar query queryType indexDirectory queryCbor rankOutput
 
 Where:
 **queryType** is one of:
-    page (retrieves query results for each page)
-    section (retrieves query results for each section)
+ - **page** (retrieves query results for each page)
+ - **section** (retrieves query results for each section)
     
 **indexDirectory**: path to the Lucene index directory to be used in the search.
 
