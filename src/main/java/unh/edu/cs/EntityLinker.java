@@ -12,18 +12,21 @@ import java.util.ArrayList;
 
 // Parses out entity links using DBpedia
 public class EntityLinker {
-    private final String url;
+    private final String url = "http://localhost:9310/jsr-spotlight/annotate";
+    private final String data;
 
     // Accepts content (paragraph text) to form a URL query to DBpedia with
     EntityLinker(String content) {
 //        String base = "http://model.dbpedia-spotlight.org/en/annotate?text=";
-        String base = "http://localhost:9310/jsr-spotlight/annotate?text=";
-        try {
-            base = base + URLEncoder.encode(content, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-        url = base;
+//        String base = "http://localhost:9310/jsr-spotlight/annotate?text=";
+//        String base = "http://localhost:9310/jsr-spotlight/annotate";
+//        try {
+//            base = base + URLEncoder.encode(content, "UTF-8");
+//        } catch (UnsupportedEncodingException e) {
+//            e.printStackTrace();
+//        }
+//        url = base;
+        data = content;
     }
 
     // Queries DBpedia and returns a list of entities
@@ -32,7 +35,10 @@ public class EntityLinker {
 
         // Query DBpedia and parse out the titles using Jsoup
         try {
-            Document doc = Jsoup.connect(url).get();
+//            Document doc = Jsoup.connect(url).get();
+            Document doc = Jsoup.connect(url)
+                    .data("text", data)
+                    .post();
             Elements links = doc.select("a[href]");
 
             for (Element e : links) {
