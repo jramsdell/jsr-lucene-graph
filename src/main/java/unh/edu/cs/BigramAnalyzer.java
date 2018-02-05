@@ -1,6 +1,5 @@
 package unh.edu.cs;
-import javafx.util.Pair;
-import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.lucene.analysis.ngram.NGramTokenizer;
 import org.apache.lucene.analysis.ngram.NGramTokenFilter;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
@@ -66,18 +65,19 @@ public class BigramAnalyzer {
         // Create list sorted by bigram scores
         return Seq.seq(bigramCounts.entrySet())
                 .map(entry ->
-                        new Pair<>(entry.getKey(), getScore(entry.getKey(), bigramCounts, monogramCounts)))
-                .sorted(Pair::getValue)
+                        new MutablePair<String, Double>(
+                                entry.getKey(), getScore(entry.getKey(), bigramCounts, monogramCounts)) {})
+                .sorted(MutablePair::getRight)
                 .reverse()
                 .take(finalCounts / 10)
-                .map(Pair::getKey)
+                .map(MutablePair::getLeft)
                 .toList();
 
     }
 
     public static void main(String[] args) throws IOException {
         BigramAnalyzer ba = new BigramAnalyzer("This is a test. I wonder if it will work.");
-//        String field = ba.run();
+        List<String> field = ba.run();
     }
 
 }

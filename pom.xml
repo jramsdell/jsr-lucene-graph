@@ -75,14 +75,6 @@
                 </configuration>
             </plugin>
 
-            <plugin>
-                <groupId>com.zenjava</groupId>
-                <artifactId>javafx-maven-plugin</artifactId>
-                <version>8.8.3</version>
-                <configuration>
-                    <mainClass>unh.edu.cs.Main</mainClass>
-                </configuration>
-            </plugin>
 
         </plugins>
     </build>
