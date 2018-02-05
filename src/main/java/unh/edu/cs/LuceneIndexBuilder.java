@@ -15,6 +15,7 @@ import edu.unh.cs.treccar_v2.read_data.DeserializeData;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.StreamSupport;
 
 class LuceneIndexBuilder {
@@ -22,7 +23,7 @@ class LuceneIndexBuilder {
     private final String corpusFile;
     private final String indexOutLocation;
     private final IndexType indexType;
-    private int commitCount = 0;
+    private AtomicInteger commitCount = new AtomicInteger(0);
 
     LuceneIndexBuilder(IndexType iType, String cFile, String iOut) {
         indexType = iType;
@@ -41,7 +42,7 @@ class LuceneIndexBuilder {
     private void addDocument(Document doc)  {
         try {
             indexWriter.addDocument(doc);
-            if (commitCount++ % 10000 == 0) {
+            if (commitCount.getAndIncrement() % 10000 == 0) {
                 indexWriter.commit();
                 System.out.print(".");
             }
@@ -54,7 +55,8 @@ class LuceneIndexBuilder {
         final FileInputStream fStream = new FileInputStream(new File(corpusFile));
         Iterable<Data.Paragraph> ip = DeserializeData.iterableParagraphs(fStream);
 
-        StreamSupport.stream(ip.spliterator(), false)
+        StreamSupport.stream(ip.spliterator(), true)
+                .parallel()
                 .map(this::createDocument)
                 .forEach(this::addDocument);
         indexWriter.close();
