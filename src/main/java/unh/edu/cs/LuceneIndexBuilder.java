@@ -66,6 +66,28 @@ class LuceneIndexBuilder {
         final String content = p.getTextOnly();
         doc.add(new TextField("text", content, Field.Store.YES));
         doc.add(new StringField("paragraphid", p.getParaId(), Field.Store.YES));
+
+        // index stored entities
+        for (String entity : p.getEntitiesOnly()) {
+            doc.add(new StringField("entity", entity, Field.Store.YES));
+        }
+
+        // index DBpedia entities
+//        EntityLinker entityLinker = new EntityLinker(content);
+//        for (String entity : entityLinker.run()) {
+//            doc.add(new StringField("spotlight", entity, Field.Store.YES));
+//        }
+
+        // index top 10% bigrams
+        BigramAnalyzer bigramAnalyzer = new BigramAnalyzer(content);
+        try {
+            for (String bigram : bigramAnalyzer.run()) {
+                doc.add(new StringField("bigram", bigram, Field.Store.YES));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         return doc;
     }
 

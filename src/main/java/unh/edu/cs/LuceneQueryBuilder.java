@@ -132,13 +132,17 @@ class LuceneQueryBuilder {
         out.close();
     }
 
-    void writeRankingsToFile(ScoreDoc[] scoreDoc, String queryId, BufferedWriter out) throws IOException {
+    void writeRankingsToFile(ScoreDoc[] scoreDoc, String queryId, BufferedWriter out, HashSet<String> ids) throws IOException {
         for (int i = 0; i < scoreDoc.length; i++) {
             ScoreDoc score = scoreDoc[i];
             final Document doc = indexSearcher.doc(score.doc);
             final String paragraphid = doc.getField("paragraphid").stringValue();
             final float searchScore = score.score;
             final int searchRank = i + 1;
+
+//            if (!ids.add(paragraphid)) {
+//                continue;
+//            }
 
             out.write(queryId + " Q0 " + paragraphid + " "
                     + searchRank + " " + searchScore + " Lucene-BM25" + "\n");
@@ -147,6 +151,8 @@ class LuceneQueryBuilder {
 
 
     void writePageRankings(FileInputStream inputStream, BufferedWriter out) throws IOException {
+        HashSet<String> ids = new HashSet<>();
+
         for (Data.Page page : DeserializeData.iterableAnnotations(inputStream)) {
             final String queryId = page.getPageId();
 
@@ -154,19 +160,23 @@ class LuceneQueryBuilder {
 
             TopDocs tops = indexSearcher.search(createQuery(queryStr), 100);
             ScoreDoc[] scoreDoc = tops.scoreDocs;
-            writeRankingsToFile(scoreDoc, queryId, out);
+            writeRankingsToFile(scoreDoc, queryId, out, ids);
         }
     }
 
     void writeSectionRankings(FileInputStream inputStream, BufferedWriter out) throws IOException {
+        HashSet<String> ids = new HashSet<>();
         for (Data.Page page : DeserializeData.iterableAnnotations(inputStream)) {
             for (List<Data.Section> sectionPath : page.flatSectionPaths()) {
                 final String queryId = Data.sectionPathId(page.getPageId(), sectionPath);
                 String queryStr = createQueryString(page, sectionPath);
+                if (!ids.add(queryId)) {
+                    continue;
+                }
 
                 TopDocs tops = indexSearcher.search(createQuery(queryStr), 100);
                 ScoreDoc[] scoreDoc = tops.scoreDocs;
-                writeRankingsToFile(scoreDoc, queryId, out);
+                writeRankingsToFile(scoreDoc, queryId, out, ids);
             }
         }
 
