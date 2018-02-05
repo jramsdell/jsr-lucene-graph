@@ -17,10 +17,9 @@ public class EntityLinker {
     // Accepts content (paragraph text) to form a URL query to DBpedia with
     EntityLinker(String content) {
 //        String base = "http://model.dbpedia-spotlight.org/en/annotate?text=";
-        String base = "localhost:9310/jsr-spotlight/annotate?text=";
+        String base = "http://localhost:9310/jsr-spotlight/annotate?text=";
         try {
             base = base + URLEncoder.encode(content, "UTF-8");
-            System.out.println(base);
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
@@ -43,8 +42,6 @@ public class EntityLinker {
             }
         } catch (IOException e) {
             e.printStackTrace();
-            System.exit(0);
-            System.out.println(url);
         }
         return entities;
     }
