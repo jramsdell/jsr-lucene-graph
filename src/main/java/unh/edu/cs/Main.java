@@ -10,7 +10,8 @@ public class Main {
     private static void printIndexerUsage() {
         System.out.println("Indexer Usage: index indexType corpusCBOR IndexDirectory\n" +
                 "Where:\n\tindexType is one of: \n" +
-                "\t\tparagraph (indexes just the full text of each paragraph\n" +
+                "\t\tnormal (indexes text in paragraphs)\n" +
+                "\t\tspotlight (also indexes entities using local spotlight server)\n" +
                 "\tcorpusCBOR: the paragraph corpus file to index\n" +
                 "\tIndexDirectory: the name of the index directory to create after indexing.\n"
         );

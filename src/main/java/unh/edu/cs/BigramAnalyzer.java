@@ -52,14 +52,6 @@ public class BigramAnalyzer {
             bigramCounts.put(token, bigramCounts.getOrDefault(token, 0.0) + 1.0);
             monogramCounts.put(token.charAt(0),
                     monogramCounts.getOrDefault(token.charAt(1), 0.0) + 1.0);
-
-//            if (!previous.isEmpty()) {
-//                String comb = previous + token;
-//                totalEdges += 1;
-//                bigramEdges.put(comb, bigramCounts.getOrDefault(comb, 0.0) + 1.0);
-//            }
-
-//            previous = token;
         }
 
         // Convert to probabilities

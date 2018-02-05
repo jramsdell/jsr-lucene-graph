@@ -55,13 +55,13 @@ class LuceneIndexBuilder {
         Iterable<Data.Paragraph> ip = DeserializeData.iterableParagraphs(fStream);
 
         StreamSupport.stream(ip.spliterator(), false)
-                .map(LuceneIndexBuilder::createDocument)
+                .map(this::createDocument)
                 .forEach(this::addDocument);
         indexWriter.close();
     }
 
 
-    private static Document createDocument(Data.Paragraph p) {
+    private Document createDocument(Data.Paragraph p) {
         final Document doc = new Document();
         final String content = p.getTextOnly();
         doc.add(new TextField("text", content, Field.Store.YES));
@@ -73,10 +73,12 @@ class LuceneIndexBuilder {
         }
 
         // index DBpedia entities
-//        EntityLinker entityLinker = new EntityLinker(content);
-//        for (String entity : entityLinker.run()) {
-//            doc.add(new StringField("spotlight", entity, Field.Store.YES));
-//        }
+        if (indexType == IndexType.SPOTLIGHT) {
+            EntityLinker entityLinker = new EntityLinker(content);
+            for (String entity : entityLinker.run()) {
+                doc.add(new StringField("spotlight", entity, Field.Store.YES));
+            }
+        }
 
         // index top 10% bigrams
         BigramAnalyzer bigramAnalyzer = new BigramAnalyzer(content);

@@ -1,5 +1,5 @@
 package unh.edu.cs;
 
 public enum IndexType {
-    PARAGRAPH;
+    NORMAL, SPOTLIGHT;
 }

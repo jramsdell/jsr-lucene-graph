@@ -16,7 +16,8 @@ public class EntityLinker {
 
     // Accepts content (paragraph text) to form a URL query to DBpedia with
     EntityLinker(String content) {
-        String base = "http://model.dbpedia-spotlight.org/en/annotate?text=hi";
+//        String base = "http://model.dbpedia-spotlight.org/en/annotate?text=";
+        String base = "http://localhost:2222/jsr-spotlight?text=";
         try {
             base = base + URLEncoder.encode(content, "UTF-8");
         } catch (UnsupportedEncodingException e) {
