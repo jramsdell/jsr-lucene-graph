@@ -1,11 +1,11 @@
 # lucene-jsr-variant
 
 
-# Running from Bin
+##### Running from Bin
 
 The may run the precompiled jar file located in bin/jsr-lucene.jar
 
-# Compiling Source Code
+##### Compiling Source Code
 Alternatively, you may use maven to compile the source code and run the target jar.
 With maven installed, run the following in the same directory as pom.xml:
 
@@ -13,7 +13,7 @@ mvn clean compile assembly:single
 
 And then run the snapshot jar found in target/
 
-# Usage
+##### Usage
 
 This program has five modes: index, query, query_vector, query_bigram, and query_entity.
 Index is used to index a paragraph corpus file, while query is used to search an indexed database using a cbor file as a query. The query_vector, query_bigram, and query_entity modes are variants of the query mode (see instructions below).
