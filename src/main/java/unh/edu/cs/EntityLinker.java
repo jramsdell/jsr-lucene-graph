@@ -6,26 +6,16 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.*;
-import java.net.MalformedURLException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 
-// Parses out entity links using DBpedia
+/**
+ * Used to query local spotlight server with a paragraph's content and retrieve a list of entities.
+ */
 public class EntityLinker {
     private final String url = "http://localhost:9310/jsr-spotlight/annotate";
     private final String data;
 
-    // Accepts content (paragraph text) to form a URL query to DBpedia with
     EntityLinker(String content) {
-//        String base = "http://model.dbpedia-spotlight.org/en/annotate?text=";
-//        String base = "http://localhost:9310/jsr-spotlight/annotate?text=";
-//        String base = "http://localhost:9310/jsr-spotlight/annotate";
-//        try {
-//            base = base + URLEncoder.encode(content, "UTF-8");
-//        } catch (UnsupportedEncodingException e) {
-//            e.printStackTrace();
-//        }
-//        url = base;
         data = content;
     }
 
@@ -33,14 +23,14 @@ public class EntityLinker {
     ArrayList<String> run() {
         ArrayList<String> entities = new ArrayList<>();
 
-        // Query DBpedia and parse out the titles using Jsoup
         try {
-//            Document doc = Jsoup.connect(url).get();
+            // Connect to database, retrieve entity-linked urls
             Document doc = Jsoup.connect(url)
                     .data("text", data)
                     .post();
             Elements links = doc.select("a[href]");
 
+            // Parse urls, returning only the last word of the url (after the last /)
             for (Element e : links) {
                 String title = e.attr("title");
                 title = title.substring(title.lastIndexOf("/") + 1);

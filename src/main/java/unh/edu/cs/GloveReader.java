@@ -10,6 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
+/**
+ * Parses and stores 50D GloVe word vectors. Used in word vector variation.
+ */
 public class GloveReader {
     final Map<String, INDArray> index;
 
@@ -30,6 +33,7 @@ public class GloveReader {
                 .toMap(ImmutablePair::getLeft, ImmutablePair::getRight);
     }
 
+    // Takes tokens, finds corresponding word vectors, and takes the average of these vectors
     public INDArray getWordVector(List<String> words) {
         Double count = 0.0;
         INDArray array = Nd4j.zeros(50);
@@ -45,6 +49,7 @@ public class GloveReader {
         return array;
     }
 
+    // Returns cosine similarity between two vectors
     public Double getCosineSim(INDArray a1, INDArray a2) {
         return Transforms.cosineSim(a1, a2);
     }

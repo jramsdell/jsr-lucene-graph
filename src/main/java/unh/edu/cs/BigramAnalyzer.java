@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+/**
+ * Tokenizes a given string and returns a list of the top 10% most frequent bigrams (2-letter strings).
+ */
 public class BigramAnalyzer {
     private final NGramTokenizer tokenizer;
 
@@ -19,6 +22,7 @@ public class BigramAnalyzer {
         tokenizer.setReader(new StringReader(content));
     }
 
+    // Returns bigram score (as depicted in the Search and Indexing Variations)
     Double getScore(String bigram, HashMap<String, Double> bigramCounts, HashMap<Character, Double> monogramCounts) {
         Double pBigram = bigramCounts.get(bigram);
         Double p1 = monogramCounts.get(bigram.charAt(0));
@@ -31,19 +35,17 @@ public class BigramAnalyzer {
         }
     }
 
+    // Tokenizes string that BigramAnalyzer was initialized with and returns list of frequent bigrams
     public List<String> run() throws IOException {
         HashMap<String, Double> bigramCounts = new HashMap<>();
         HashMap<Character, Double> monogramCounts = new HashMap<>();
         int totalBigrams = 0;
 
-//        CharTermAttribute charTerm = tokenizer.addAttribute(CharTermAttribute.class);
         NGramTokenFilter filter = new NGramTokenFilter(tokenizer, 2, 2);
         CharTermAttribute charTerm = filter.addAttribute(CharTermAttribute.class);
-//        tokenizer.reset();
         filter.reset();
 
-        // Count number of times each bigram occur and co-occur
-        String previous = "";
+        // Count number of times each bigram and its two terms occurs
         while (filter.incrementToken()) {
             String token = charTerm.toString();
             totalBigrams += 1;
@@ -54,9 +56,8 @@ public class BigramAnalyzer {
         }
 
         // Convert to probabilities
-        ArrayList<Integer> stuff = new ArrayList<>();
-
         final int finalCounts = totalBigrams;
+
         bigramCounts.entrySet()
                 .forEach(entry -> entry.setValue(entry.getValue() / finalCounts));
         monogramCounts.entrySet()
@@ -68,8 +69,8 @@ public class BigramAnalyzer {
                         new MutablePair<String, Double>(
                                 entry.getKey(), getScore(entry.getKey(), bigramCounts, monogramCounts)) {})
                 .sorted(MutablePair::getRight)
-                .reverse()
-                .take(finalCounts / 10)
+                .reverse()                          // Sorted by ascending, so need to reverse
+                .take(finalCounts / 10)             // Only take top 10% of most frequent bigrams
                 .map(MutablePair::getLeft)
                 .toList();
 

@@ -18,16 +18,21 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.jooq.lambda.Seq;
 import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.factory.Nd4j;
 
 import java.io.*;
-import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+/**
+ * Given a query file, will build queries to query indexed Lucene database with.
+ * Implements variations of querying and ranking.
+ *
+ * command: Command used to run program. Used to distinguish between variations of normal methods when querying.
+ * gloveReader: Used for word vector variation: compares query and documents via cosine sim
+ */
 class LuceneQueryBuilder {
     private IndexSearcher indexSearcher;
     private Analyzer analyzer;
@@ -44,10 +49,12 @@ class LuceneQueryBuilder {
         indexSearcher.setSimilarity(sim);
     }
 
+    // Used by word vector variation: creates a reader from 50D GloVE word vector file.
     public void setVectorLocation(String vectorLocation) throws IOException {
         gloveReader = new GloveReader(vectorLocation);
     }
 
+    // Supplier that wraps around a tokenstream and provides its tokens when called.
     private class TokenGenerator implements Supplier<String> {
         final TokenStream tokenStream;
 
@@ -71,9 +78,13 @@ class LuceneQueryBuilder {
         }
     }
 
+    // Returns TermQueries for the QueryBuilder to use
+    // Additional terms are added depending variation used
     private Seq<TermQuery> getQueries(String token) {
         ArrayList<TermQuery> list = new ArrayList<>();
         list.add(new TermQuery(new Term("text", token)));
+
+        // Entity-linking variation: also compare against entities and spotlight entities
         if (command.equals("query_entity")) {
             list.add(new TermQuery(new Term("entities", token)));
             list.add(new TermQuery(new Term("spotlight", token)));
@@ -81,6 +92,7 @@ class LuceneQueryBuilder {
         return Seq.seq(list);
     }
 
+    // Builds queries to be used in search
     private BooleanQuery createQuery(String query) throws IOException {
         TokenStream tokenStream = analyzer.tokenStream("text", new StringReader(query));
         TokenGenerator tg = new TokenGenerator(tokenStream);
@@ -102,6 +114,7 @@ class LuceneQueryBuilder {
         return queryBuilder.build();
     }
 
+    // Formats query string (to be tokenized)
     private static String createQueryString(Data.Page page, List<Data.Section> sectionPath) {
         return page.getPageName() +
                 sectionPath.stream()
@@ -109,6 +122,7 @@ class LuceneQueryBuilder {
                         .collect(Collectors.joining(" "));
     }
 
+    // Writes top-scores to a given document
     void writeRankings(String queryLocation, String rankingsOutput) throws IOException {
         final BufferedWriter out = new BufferedWriter(new FileWriter(rankingsOutput));
         final FileInputStream inputStream = new FileInputStream(new File(queryLocation));
@@ -145,6 +159,8 @@ class LuceneQueryBuilder {
 
             String queryStr = createQueryString(page, Collections.<Data.Section>emptyList());
             TopDocs tops = indexSearcher.search(createQuery(queryStr), 100);
+
+            // if Word Vector variant, rerank according to cosine sim from query to document terms
             if (command.equals("query_vector")) {
                 rerankByCosineSim(tops, queryStr);
             }
@@ -164,6 +180,8 @@ class LuceneQueryBuilder {
                 }
 
                 TopDocs tops = indexSearcher.search(createQuery(queryStr), 100);
+
+                // if Word Vector variant, rerank according to cosine sim from query to document terms
                 if (command.equals("query_vector")) {
                     rerankByCosineSim(tops, queryStr);
                 }
@@ -174,7 +192,7 @@ class LuceneQueryBuilder {
 
     }
 
-
+    // Initializes index searcher that will be used to query indexed Lucene database
     private void createIndexSearcher(String iPath) throws IOException {
         Path indexPath = Paths.get(iPath);
         Directory indexDir = FSDirectory.open(indexPath);
@@ -182,6 +200,7 @@ class LuceneQueryBuilder {
         indexSearcher = new IndexSearcher(indexReader);
     }
 
+    // Tokenizes a string
     private List<String> getVectorWordTokens(String text) throws IOException {
         TokenStream tokenStream = analyzer.tokenStream("text", new StringReader(text));
         TokenGenerator tg = new TokenGenerator(tokenStream);
@@ -190,6 +209,8 @@ class LuceneQueryBuilder {
                 .toList();
     }
 
+    // Takes contents of a document, tokenizes it, searches for corresponding word vectors in GloVe,
+    // takes the average of these vectors, and runs cosine similarity against query word vector.
     private Double getDocumentVectorScore(INDArray query,  ScoreDoc sd) {
         try {
             Document doc = indexSearcher.doc(sd.doc);
@@ -204,6 +225,7 @@ class LuceneQueryBuilder {
         }
     }
 
+    // Reranks according to cosine similarity
     private void rerankByCosineSim(TopDocs tops, String query) throws IOException {
         List<String> queryTokens = getVectorWordTokens(query);
         INDArray queryVector = gloveReader.getWordVector(queryTokens);

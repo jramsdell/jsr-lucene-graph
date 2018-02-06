@@ -14,7 +14,6 @@ import edu.unh.cs.treccar_v2.Data;
 import edu.unh.cs.treccar_v2.read_data.DeserializeData;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.StreamSupport;
 
@@ -55,6 +54,7 @@ class LuceneIndexBuilder {
         final FileInputStream fStream = new FileInputStream(new File(corpusFile));
         Iterable<Data.Paragraph> ip = DeserializeData.iterableParagraphs(fStream);
 
+        // Parallelized stream for adding documents to indexed database
         StreamSupport.stream(ip.spliterator(), true)
                 .parallel()
                 .map(this::createDocument)
@@ -76,6 +76,7 @@ class LuceneIndexBuilder {
 
         // index DBpedia entities
         if (indexType == IndexType.SPOTLIGHT) {
+            // Query local spotlight server using EntityLinker
             EntityLinker entityLinker = new EntityLinker(content);
             for (String entity : entityLinker.run()) {
                 doc.add(new StringField("spotlight", entity, Field.Store.YES));

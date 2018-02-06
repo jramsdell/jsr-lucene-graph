@@ -61,6 +61,7 @@ public class Main {
 
     }
 
+    // Runs query as per command arguments
     private static void runQuery(String command, String qType, String indexLocation, String queryLocation,
                                         String rankingOutputLocation) throws IOException {
 
@@ -69,6 +70,7 @@ public class Main {
         qbuilder.writeRankings(queryLocation, rankingOutputLocation);
     }
 
+    // Variant of runQuery that also supplied location to word vectors file (used for word vector reranking)
     private static void runQuery(String command, String qType, String indexLocation, String queryLocation,
                                  String rankingOutputLocation, String vectorLoc) throws IOException {
 
@@ -125,7 +127,7 @@ public class Main {
                 }
                 break;
 
-            // Runs query command
+            // Runs query command (query_entity and query_bigram are sub-commands)
             case "query":
             case "query_entity":
             case "query_bigram":
@@ -140,13 +142,14 @@ public class Main {
                     printQueryUsage();
                 }
                 break;
+            // Runs query_vector command (sub-command of query, but also requires a vector file)
             case "query_vector":
                 try {
                     String command = args[0];
                     String queryType = args[1].toUpperCase();
                     String indexLocation = args[2];
                     String vectorLocation = args[3];
-                    String queryLocation = args[4];
+                    String queryLocation = args[4]; // Should be GloVe's 50D word vectors
                     String rankingOutputLocation = args[5];
                     runQuery(command, queryType, indexLocation, queryLocation, rankingOutputLocation,
                             vectorLocation);
