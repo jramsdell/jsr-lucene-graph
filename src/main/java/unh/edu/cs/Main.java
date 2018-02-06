@@ -1,9 +1,12 @@
 package unh.edu.cs;
 
+import com.google.common.collect.Maps;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.search.similarities.BM25Similarity;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 public class Main {
 
@@ -18,11 +21,23 @@ public class Main {
     }
 
     private static void printQueryUsage() {
-        System.out.println("Query Usage: query queryType indexDirectory queryCbor rankOutput\n" +
+        System.out.println("Query Usage: query queryType indexLoc queryCbor rankOutput\n" +
                 "Where:\n\tqueryType is one of: \n" +
                 "\t\tpage (retrieves query results for each page)\n" +
                 "\t\tsection (retrieves query results for each section)\n" +
-                "\tindexLocation: the directory of the lucene index.\n" +
+                "\tindexLoc: the directory of the lucene index.\n" +
+                "\tqueryCbor: the cbor file to be used as a query with the index.\n" +
+                "\trankOutput: is the output location of the rankings (used for trec-eval)\n"
+        );
+    }
+
+    private static void printQueryVectorUsage() {
+        System.out.println("Query Usage: query_vector queryType indexLoc vectorLoc queryCbor rankOutput\n" +
+                "Where:\n\tqueryType is one of: \n" +
+                "\t\tpage (retrieves query results for each page)\n" +
+                "\t\tsection (retrieves query results for each section)\n" +
+                "\tindexLoc: the directory of the lucene index.\n" +
+                "\tvectorLoc: the word vector file.\n" +
                 "\tqueryCbor: the cbor file to be used as a query with the index.\n" +
                 "\trankOutput: is the output location of the rankings (used for trec-eval)\n"
         );
@@ -46,20 +61,39 @@ public class Main {
 
     }
 
-    private static void runQuery(String qType, String indexLocation, String queryLocation,
-                                 String rankingOutputLocation) throws IOException {
+    private static void runQuery(String command, String qType, String indexLocation, String queryLocation,
+                                        String rankingOutputLocation) throws IOException {
+
+        LuceneQueryBuilder qbuilder = getQueryBuilder(command, qType, indexLocation,
+                queryLocation, rankingOutputLocation);
+        qbuilder.writeRankings(queryLocation, rankingOutputLocation);
+    }
+
+    private static void runQuery(String command, String qType, String indexLocation, String queryLocation,
+                                 String rankingOutputLocation, String vectorLoc) throws IOException {
+
+        LuceneQueryBuilder qbuilder = getQueryBuilder(command, qType, indexLocation,
+                queryLocation, rankingOutputLocation);
+        qbuilder.setVectorLocation(vectorLoc);
+        qbuilder.writeRankings(queryLocation, rankingOutputLocation);
+    }
+
+    private static LuceneQueryBuilder getQueryBuilder(String command, String qType, String indexLocation,
+                                                      String queryLocation,
+                                                      String rankingOutputLocation) throws IOException {
         QueryType queryType = null;
         try {
             queryType = QueryType.valueOf(qType);
+
         } catch (IllegalArgumentException e) {
             System.out.println("Unknown query type!");
             printQueryUsage();
             System.exit(1);
         }
-        LuceneQueryBuilder lqb = new LuceneQueryBuilder(
-                queryType, new StandardAnalyzer(), new BM25Similarity(), indexLocation);
-        lqb.writeRankings(queryLocation, rankingOutputLocation);
+
+        return new LuceneQueryBuilder(command, queryType, new StandardAnalyzer(), new BM25Similarity(), indexLocation);
     }
+
 
 
     private static void printUsages() {
@@ -93,14 +127,30 @@ public class Main {
 
             // Runs query command
             case "query":
+            case "query_entity":
                 try {
+                    String command = args[0];
                     String queryType = args[1].toUpperCase();
                     String indexLocation = args[2];
                     String queryLocation = args[3];
                     String rankingOutputLocation = args[4];
-                    runQuery(queryType, indexLocation, queryLocation, rankingOutputLocation);
+                    runQuery(command, queryType, indexLocation, queryLocation, rankingOutputLocation);
                 } catch (ArrayIndexOutOfBoundsException e) {
                     printQueryUsage();
+                }
+                break;
+            case "query_vector":
+                try {
+                    String command = args[0];
+                    String queryType = args[1].toUpperCase();
+                    String indexLocation = args[2];
+                    String vectorLocation = args[3];
+                    String queryLocation = args[4];
+                    String rankingOutputLocation = args[5];
+                    runQuery(command, queryType, indexLocation, queryLocation, rankingOutputLocation,
+                            vectorLocation);
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    printQueryVectorUsage();
                 }
                 break;
             default:

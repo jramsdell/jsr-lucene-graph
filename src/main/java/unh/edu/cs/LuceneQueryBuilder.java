@@ -2,11 +2,13 @@ package unh.edu.cs;
 
 import edu.unh.cs.treccar_v2.Data;
 import edu.unh.cs.treccar_v2.read_data.DeserializeData;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.Term;
@@ -15,6 +17,8 @@ import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.jooq.lambda.Seq;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.factory.Nd4j;
 
 import java.io.*;
 import java.nio.file.FileSystems;
@@ -28,12 +32,20 @@ class LuceneQueryBuilder {
     private IndexSearcher indexSearcher;
     private Analyzer analyzer;
     private QueryType queryType;
+    private GloveReader gloveReader;
+    private final String command;
 
-    LuceneQueryBuilder(QueryType qType, Analyzer ana, Similarity sim, String indexPath) throws IOException {
+    LuceneQueryBuilder(String com, QueryType qType, Analyzer ana,
+                       Similarity sim, String indexPath) throws IOException {
         analyzer = ana;
+        command = com;
         queryType = qType;
         createIndexSearcher(indexPath);
         indexSearcher.setSimilarity(sim);
+    }
+
+    public void setVectorLocation(String vectorLocation) throws IOException {
+        gloveReader = new GloveReader(vectorLocation);
     }
 
     private class TokenGenerator implements Supplier<String> {
@@ -59,63 +71,46 @@ class LuceneQueryBuilder {
         }
     }
 
-    // delete
-    private static IndexSearcher setupIndexSearcher(String indexPath, String typeIndex) throws IOException {
-        Path path = FileSystems.getDefault().getPath(indexPath);
-        Directory indexDir = FSDirectory.open(path);
-        IndexReader reader = DirectoryReader.open(indexDir);
-        return new IndexSearcher(reader);
-    }
-
-    // delete
-    static class MyQueryBuilder {
-        private final StandardAnalyzer analyzer;
-        private List<String> tokens;
-
-        public MyQueryBuilder(StandardAnalyzer standardAnalyzer){
-            analyzer = standardAnalyzer;
-            tokens = new ArrayList<>(128);
+    private Seq<TermQuery> getQueries(String token) {
+        ArrayList<TermQuery> list = new ArrayList<>();
+        list.add(new TermQuery(new Term("text", token)));
+        if (command.equals("query_entity")) {
+            list.add(new TermQuery(new Term("entities", token)));
+            list.add(new TermQuery(new Term("spotlight", token)));
         }
-
-        public BooleanQuery toQuery(String queryStr) throws IOException {
-
-            TokenStream tokenStream = analyzer.tokenStream("text", new StringReader(queryStr));
-            tokenStream.reset();
-            tokens.clear();
-
-            while (tokenStream.incrementToken()) {
-                final String token = tokenStream.getAttribute(CharTermAttribute.class).toString();
-                tokens.add(token);
-            }
-            tokenStream.end();
-            tokenStream.close();
-            BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
-            for (String token : tokens) {
-                booleanQuery.add(new TermQuery(new Term("text", token)), BooleanClause.Occur.SHOULD);
-            }
-            return booleanQuery.build();
-        }
+        return Seq.seq(list);
     }
 
     private BooleanQuery createQuery(String query) throws IOException {
         TokenStream tokenStream = analyzer.tokenStream("text", new StringReader(query));
         TokenGenerator tg = new TokenGenerator(tokenStream);
         BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
-//        Optional.ofNullable(tg)
+
         Seq.generate(tg).limitWhile(Objects::nonNull)
-                .map(s -> new TermQuery(new Term("text", s)))
+                .flatMap(this::getQueries)
                 .forEach(termQuery -> queryBuilder.add(termQuery, BooleanClause.Occur.SHOULD));
+
+//                .map(s -> new TermQuery(new Term("text", s)))
+//                .forEach(termQuery -> queryBuilder.add(termQuery, BooleanClause.Occur.SHOULD));
+
+//        if (command.equals("query_entity")) {
+//            tg = getTokenGenerator(query);
+//            Seq.generate(tg).limitWhile(Objects::nonNull)
+//                    .map(s -> new TermQuery(new Term("entities", s)))
+//                    .forEach(termQuery -> queryBuilder.add(termQuery, BooleanClause.Occur.SHOULD));
+//            tg = getTokenGenerator(query);
+//            Seq.generate(tg).limitWhile(Objects::nonNull)
+//                    .map(s -> new TermQuery(new Term("spotlight", s)))
+//                    .forEach(termQuery -> queryBuilder.add(termQuery, BooleanClause.Occur.SHOULD));
+//        }
         return queryBuilder.build();
     }
 
     private static String createQueryString(Data.Page page, List<Data.Section> sectionPath) {
-        StringBuilder queryStr = new StringBuilder();
-        String results = page.getPageName() +
+        return page.getPageName() +
                 sectionPath.stream()
                         .map(section -> " " + section.getHeading() )
                         .collect(Collectors.joining(" "));
-
-        return results;
     }
 
     void writeRankings(String queryLocation, String rankingsOutput) throws IOException {
@@ -140,10 +135,6 @@ class LuceneQueryBuilder {
             final float searchScore = score.score;
             final int searchRank = i + 1;
 
-//            if (!ids.add(paragraphid)) {
-//                continue;
-//            }
-
             out.write(queryId + " Q0 " + paragraphid + " "
                     + searchRank + " " + searchScore + " Lucene-BM25" + "\n");
         }
@@ -157,8 +148,10 @@ class LuceneQueryBuilder {
             final String queryId = page.getPageId();
 
             String queryStr = createQueryString(page, Collections.<Data.Section>emptyList());
-
             TopDocs tops = indexSearcher.search(createQuery(queryStr), 100);
+            if (command.equals("query_vector")) {
+                rerankByCosineSim(tops, queryStr);
+            }
             ScoreDoc[] scoreDoc = tops.scoreDocs;
             writeRankingsToFile(scoreDoc, queryId, out, ids);
         }
@@ -175,6 +168,9 @@ class LuceneQueryBuilder {
                 }
 
                 TopDocs tops = indexSearcher.search(createQuery(queryStr), 100);
+                if (command.equals("query_vector")) {
+                    rerankByCosineSim(tops, queryStr);
+                }
                 ScoreDoc[] scoreDoc = tops.scoreDocs;
                 writeRankingsToFile(scoreDoc, queryId, out, ids);
             }
@@ -190,4 +186,35 @@ class LuceneQueryBuilder {
         indexSearcher = new IndexSearcher(indexReader);
     }
 
+    private List<String> getVectorWordTokens(String text) throws IOException {
+        TokenStream tokenStream = analyzer.tokenStream("text", new StringReader(text));
+        TokenGenerator tg = new TokenGenerator(tokenStream);
+        return Seq.generate(tg).limitWhile(Objects::nonNull)
+                .map(String::toLowerCase)
+                .toList();
+    }
+
+    private Double getDocumentVectorScore(INDArray query,  ScoreDoc sd) {
+        try {
+            Document doc = indexSearcher.doc(sd.doc);
+            List<String> tokens = getVectorWordTokens(doc.getField("text").stringValue());
+            INDArray docArray = gloveReader.getWordVector(tokens);
+            return gloveReader.getCosineSim(query, docArray);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return 0.0;
+        }
+    }
+
+    private void rerankByCosineSim(TopDocs tops, String query) throws IOException {
+        List<String> queryTokens = getVectorWordTokens(query);
+        INDArray queryVector = gloveReader.getWordVector(queryTokens);
+        Seq.seq(Arrays.stream(tops.scoreDocs))
+                .map(sd -> new ImmutablePair<ScoreDoc, Double>(sd, getDocumentVectorScore(queryVector, sd)))
+                .sorted(ImmutablePair::getRight)
+                .reverse()
+                .map(ImmutablePair::getLeft)
+                .zip(Seq.range(0, tops.scoreDocs.length))
+                .forEach(it -> tops.scoreDocs[it.v2] = it.v1);
+    }
 }

@@ -39,15 +39,14 @@ public class GloveReader {
             if (result != null) {
                 count += 1.0;
                 array.addi(result);
-                System.out.println("THIS");
-                System.out.println(array);
             }
         }
-        System.out.println("Final");
-        System.out.println(array);
-        array.muli(2.0);
-        System.out.println(array);
+        array.divi(count);
         return array;
+    }
+
+    public Double getCosineSim(INDArray a1, INDArray a2) {
+        return Transforms.cosineSim(a1, a2);
     }
 
     public static void main(String[] args) throws IOException {
