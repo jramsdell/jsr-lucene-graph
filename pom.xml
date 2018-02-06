@@ -36,6 +36,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.nd4j</groupId>
+            <artifactId>nd4j-native-platform</artifactId>
+            <version>0.9.1</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-analyzers-common</artifactId>
             <version>7.2.1</version>
@@ -46,6 +52,8 @@
             <artifactId>jool</artifactId>
             <version>0.9.12</version>
         </dependency>
+
+
 
 
     </dependencies>
