@@ -18,6 +18,8 @@ And then run the snapshot jar found in target/
 This program has five modes: index, query, query_vector, query_bigram, and query_entity.
 Index is used to index a paragraph corpus file, while query is used to search an indexed database using a cbor file as a query. The query_vector, query_bigram, and query_entity modes are variants of the query mode (see instructions below).
 
+---
+
 ### Index Mode
 To run the index mode, do:
 
