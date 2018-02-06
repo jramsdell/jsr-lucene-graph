@@ -128,6 +128,7 @@ public class Main {
             // Runs query command
             case "query":
             case "query_entity":
+            case "query_bigram":
                 try {
                     String command = args[0];
                     String queryType = args[1].toUpperCase();
