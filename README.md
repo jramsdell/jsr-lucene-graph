@@ -1,4 +1,4 @@
-# lucene-jsr
+# lucene-jsr-variant
 
 
 # Running from Bin
