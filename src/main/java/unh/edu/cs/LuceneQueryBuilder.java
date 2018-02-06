@@ -99,19 +99,6 @@ class LuceneQueryBuilder {
             }
         }
 
-//                .map(s -> new TermQuery(new Term("text", s)))
-//                .forEach(termQuery -> queryBuilder.add(termQuery, BooleanClause.Occur.SHOULD));
-
-//        if (command.equals("query_entity")) {
-//            tg = getTokenGenerator(query);
-//            Seq.generate(tg).limitWhile(Objects::nonNull)
-//                    .map(s -> new TermQuery(new Term("entities", s)))
-//                    .forEach(termQuery -> queryBuilder.add(termQuery, BooleanClause.Occur.SHOULD));
-//            tg = getTokenGenerator(query);
-//            Seq.generate(tg).limitWhile(Objects::nonNull)
-//                    .map(s -> new TermQuery(new Term("spotlight", s)))
-//                    .forEach(termQuery -> queryBuilder.add(termQuery, BooleanClause.Occur.SHOULD));
-//        }
         return queryBuilder.build();
     }
 
@@ -208,7 +195,9 @@ class LuceneQueryBuilder {
             Document doc = indexSearcher.doc(sd.doc);
             List<String> tokens = getVectorWordTokens(doc.getField("text").stringValue());
             INDArray docArray = gloveReader.getWordVector(tokens);
-            return gloveReader.getCosineSim(query, docArray);
+            Double score = gloveReader.getCosineSim(query, docArray);
+            sd.score = score.floatValue();
+            return score;
         } catch (IOException e) {
             e.printStackTrace();
             return 0.0;
