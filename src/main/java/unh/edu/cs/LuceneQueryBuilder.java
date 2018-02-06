@@ -90,6 +90,15 @@ class LuceneQueryBuilder {
                 .flatMap(this::getQueries)
                 .forEach(termQuery -> queryBuilder.add(termQuery, BooleanClause.Occur.SHOULD));
 
+        if (command.equals("query_bigram")) {
+            BigramAnalyzer bg = new BigramAnalyzer(query);
+            List<String> bigrams = bg.run();
+            for (String bigram : bigrams) {
+                TermQuery tq = new TermQuery(new Term("bigram", bigram));
+                queryBuilder.add(tq, BooleanClause.Occur.SHOULD);
+            }
+        }
+
 //                .map(s -> new TermQuery(new Term("text", s)))
 //                .forEach(termQuery -> queryBuilder.add(termQuery, BooleanClause.Occur.SHOULD));
 
